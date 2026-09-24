@@ -1,33 +1,39 @@
 import allure
-import pytest
 
 import helpers
 
 
 class TestUpdateUser:
-    @allure.title('Можно изменить данные авторизованного пользователя')
-    @pytest.mark.parametrize('field', ['email', 'name', 'password'])
-    def test_update_authorized_user(self, user, field):
-        if field == 'email':
-            value = helpers.generate_user()['email']
-        elif field == 'name':
-            value = 'Julia New'
-        else:
-            value = 'newpassword'
-        response = helpers.update_user({field: value}, user['accessToken'])
-        assert response.status_code == 200
+    @allure.title('Можно изменить email авторизованного пользователя')
+    def test_update_authorized_user_email(self, user):
+        new_email = helpers.generate_user()['email']
+        response = helpers.update_user({'email': new_email}, user['accessToken'])
+        user['email'] = new_email
         body = response.json()
+        assert response.status_code == 200
         assert body['success'] is True
-        if field == 'password':
-            login = helpers.login_user(user['email'], value)
-            assert login.status_code == 200
-            user['password'] = value
-        else:
-            assert body['user'][field] == value
-            user[field] = value
+        assert body['user']['email'] == new_email
+
+    @allure.title('Можно изменить имя авторизованного пользователя')
+    def test_update_authorized_user_name(self, user):
+        response = helpers.update_user({'name': 'Julia New'}, user['accessToken'])
+        user['name'] = 'Julia New'
+        body = response.json()
+        assert response.status_code == 200
+        assert body['success'] is True
+        assert body['user']['name'] == 'Julia New'
+
+    @allure.title('Можно изменить пароль авторизованного пользователя')
+    def test_update_authorized_user_password(self, user):
+        response = helpers.update_user({'password': 'newpassword'}, user['accessToken'])
+        user['password'] = 'newpassword'
+        login = helpers.login_user(user['email'], user['password'])
+        assert response.status_code == 200
+        assert response.json()['success'] is True
+        assert login.status_code == 200
 
     @allure.title('Нельзя изменить данные пользователя без авторизации')
-    def test_update_user_without_authorization(self):
+    def test_update_user_without_authorization():
         response = helpers.update_user({'name': 'Julia New'})
         assert response.status_code == 401
         assert response.json() == {'success': False, 'message': 'You should be authorised'}
